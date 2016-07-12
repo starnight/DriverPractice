@@ -15,7 +15,7 @@ test:
 	chmod 666 /dev/$(PROJ)
 	echo -n "Happy!" > /dev/$(PROJ)
 	dmesg | tail
-	head /dev/$(PROJ)
+	cat /dev/$(PROJ)
 	dmesg | tail
 	rm /dev/$(PROJ)
 	rmmod $(PROJ)

@@ -2,6 +2,7 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <asm/uaccess.h>
+#include <linux/string.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -16,35 +17,35 @@ static int example_close(struct inode *inode, struct file *filp) {
 }
 
 static ssize_t example_read(struct file *filp, char __user *buf, size_t size, loff_t *f_pos) {
-	size_t pos;
+	size_t count;
 	uint8_t byte;
 	char data[] = "0123456789\r\n";
 	
 	printk("<1>EXAMPLE: read (size=%zu)\n", size);
-	for(pos = 0; (pos < size) && pos < 12; ++pos) {
-		byte = data[pos];
-		if(copy_to_user(buf + pos, &byte, 1) != 0) {
+	for(count = 0; (count < size) && (*f_pos) < strlen(data); ++(*f_pos), ++count) {
+		byte = data[*f_pos];
+		if(copy_to_user(buf + count, &byte, 1) != 0) {
 			break;
 		}
-		printk("<1>EXAMPLE: read (buf[%zu]=%02x)\n", pos, (unsigned)byte);
+		printk("<1>EXAMPLE: read (buf[%zu]=%02x)\n", count, (unsigned)byte);
 	}
 
-	return pos;
+	return count;
 }
 
 static ssize_t example_write(struct file *filp, const char __user *buf, size_t size, loff_t *f_pos) {
-	size_t pos;
+	size_t count;
 	uint8_t byte;
 
 	printk("<1>EXAMPLE: write (size=%zu)\n", size);
-	for(pos = 0; pos < size; ++pos) {
-		if(copy_from_user(&byte, buf + pos, 1) != 0) {
+	for(count = 0; count < size; ++count) {
+		if(copy_from_user(&byte, buf + count, 1) != 0) {
 			break;
 		}
-		printk("<1>EXAMPLE: write (buf[%zu]=%02x)\n", pos, (unsigned)byte);
+		printk("<1>EXAMPLE: write (buf[%zu]=%02x)\n", count, (unsigned)byte);
 	}
 
-	return size;
+	return count;
 }
 
 static struct file_operations example_fops = {
