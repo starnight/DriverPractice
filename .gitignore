@@ -1,0 +1,36 @@
+# folders
+__pycache__/
+.tmp_versions/
+
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.bin
+*.hex
+*.eep
+*.elf
+microhttpserver
+
+# config
+tags
+
+# intermediate
+*.cmd
+Module.symvers
+*.ko
+*.mod.c
+modules.order
