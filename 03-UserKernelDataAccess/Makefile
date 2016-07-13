@@ -6,20 +6,20 @@ KERNELDIR=/lib/modules/$(shell uname -r)/build
 endif
 
 all:
-	make -C $(KERNELDIR) M=$(PWD) modules
+	make -C $(KERNELDIR) M=$(shell pwd) modules
 
 test:
-	insmod ./$(PROJ).ko
+	sudo insmod ./$(PROJ).ko
 	dmesg | tail
-	mknod /dev/$(PROJ) c 60 0
-	chmod 666 /dev/$(PROJ)
+	sudo mknod /dev/$(PROJ) c 60 0
+	sudo chmod 666 /dev/$(PROJ)
 	echo -n "Happy!" > /dev/$(PROJ)
 	dmesg | tail
 	cat /dev/$(PROJ)
 	dmesg | tail
-	rm /dev/$(PROJ)
-	rmmod $(PROJ)
+	sudo rm /dev/$(PROJ)
+	sudo rmmod $(PROJ)
 	dmesg | tail
 
 clean:
-	make -C $(KERNELDIR) M=$(PWD) clean
+	make -C $(KERNELDIR) M=$(shell pwd) clean
