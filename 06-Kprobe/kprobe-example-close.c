@@ -7,8 +7,8 @@ MODULE_LICENSE("Dual BSD/GPL");
 /* kprobe pre_handler: called just before the probed instruction is executed */
 static int handler_pre(struct kprobe *p, struct pt_regs *regs) {
 #ifdef CONFIG_X86
-	printk(KERN_INFO "pre_handler: p->addr = 0x%p, ip = %lx, flags = 0x%lx\n", p->addr, regs->ip, regs->flags);
-	printk("++++++++process_name:[%s], pid = %d.\n", current->comm, current->pid);
+	printk(KERN_INFO "KPROBE EXAMPLE: pre_handler: p->addr = 0x%p, ip = %lx, flags = 0x%lx\n", p->addr, regs->ip, regs->flags);
+	printk(KERN_INFO "KPROBE EXAMPLE: ++++++++process_name:[%s], pid = %d.\n", current->comm, current->pid);
 #endif
     dump_stack(); /* A dump_stack() here will give a stack backtrace */
     return 0;
@@ -17,7 +17,7 @@ static int handler_pre(struct kprobe *p, struct pt_regs *regs) {
 /* kprobe post_handler: called after the probed instruction is executed */
 static void handler_post(struct kprobe *p, struct pt_regs *regs, unsigned long flags) {
 #ifdef CONFIG_X86
-    printk(KERN_INFO "post_handler: p->addr = 0x%p, flags = 0x%lx\n", p->addr, regs->flags);
+    printk(KERN_INFO "KPROBE EXAMPLE: post_handler: p->addr = 0x%p, flags = 0x%lx\n", p->addr, regs->flags);
 #endif
 }
 
@@ -27,7 +27,7 @@ static void handler_post(struct kprobe *p, struct pt_regs *regs, unsigned long f
  * single-steps the probed instruction.
 */
 static int handler_fault(struct kprobe *p, struct pt_regs *regs, int trapnr) {
-    printk(KERN_INFO "fault_handler: p->addr = 0x%p, trap #%dn", p->addr, trapnr);
+    printk(KERN_INFO "KPROBE EXAMPLE: fault_handler: p->addr = 0x%p, trap #%dn", p->addr, trapnr);
     /* Return 0 because we don't handle the fault. */
     return 0;
 }
@@ -36,6 +36,7 @@ static int handler_fault(struct kprobe *p, struct pt_regs *regs, int trapnr) {
 static struct kprobe kp = {
 	/* The kernel diver function going to be monitored.*/
 	.symbol_name = "example_close",
+	/* Assign the callback functions to the hooks. */
 	.pre_handler = handler_pre,
 	.post_handler = handler_post,
 	.fault_handler = handler_fault,
