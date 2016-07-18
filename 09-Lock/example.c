@@ -10,6 +10,7 @@
 MODULE_LICENSE("Dual BSD/GPL");
 
 static char data[] = "0123456789\r\n";
+/* The lock for device data. */
 static rwlock_t lock;
 
 static int example_open(struct inode *inode, struct file *filp) {
