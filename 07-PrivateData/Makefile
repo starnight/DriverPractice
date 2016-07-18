@@ -34,10 +34,7 @@ test-post:
 	sudo rmmod $(PROJ)
 	dmesg | tail
 
-test:
-	make test-pre
-	make test-action
-	make test-post
+test: test-pre test-action test-post
 
 clean:
 	make -C $(KERNELDIR) M=$(shell pwd) clean
