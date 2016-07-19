@@ -10,6 +10,7 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
+/* The device packaged data and registers structure. */
 struct device_data_reg {
 	int flag;
 	char *data;
@@ -17,6 +18,7 @@ struct device_data_reg {
 	rwlock_t lock;
 };
 
+/* The device initial data and registers' value. */
 static char _buffer[] = "0123456789\r\n";
 static struct device_data_reg dev_data = {
 									.flag = 0,
