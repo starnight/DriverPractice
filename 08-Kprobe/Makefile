@@ -7,7 +7,7 @@ endif
 
 MAJORSCRIPT=`dmesg | grep "EXAMPLE: $(PROJ) driver(major [0-9]\+) installed" | tail -n 1 | sed -n 's/.*major \(.*\)).*/\1/p'`
 
-TEST_TARGET_DIR=../05-PrintkMessageLevel
+TEST_TARGET_DIR=../07-AutoMakeNode
 TEST_TARGET_FILE=$(TEST_TARGET_DIR)/Makefile
 
 all:
