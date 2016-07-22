@@ -23,12 +23,16 @@ struct device_data_reg {
 	/* Semaphore for poll. */
 	struct semaphore sem;
 	wait_queue_head_t read_wait;
-	/* Spinlock for timer interrupt. */
-	spinlock_t splock;
+	wait_queue_head_t write_wait;
+	/* Spinlock for read / write timer interrupt. */
+	spinlock_t read_splock;
+	spinlock_t write_splock;
 	/* Timer. */
-	struct timer_list timeout;
-	/* Ready to read flag. */
+	struct timer_list read_timeout;
+	struct timer_list write_timeout;
+	/* Ready to be read / write flag. */
 	int read_flag;
+	int write_flag;
 };
 
 /* The device initial data and registers' value. */
@@ -38,22 +42,40 @@ static struct device_data_reg dev_data = {
 									.data = _buffer,
 									.len = 12};
 
-/* Timer interrupt handler. */
-static void example_timeout_handler(unsigned long arg) {
+/* Read timer interrupt handler. */
+static void example_read_timeout_handler(unsigned long arg) {
 	struct device_data_reg *data_p = (struct device_data_reg *)arg;
 	unsigned long flags;
 
-	printk(KERN_DEBUG "EXAMPLE: timer timeout\n");
+	printk(KERN_DEBUG "EXAMPLE: read timer timeout\n");
 
 	/* Spin lock in interrupt. */
-	spin_lock_irqsave(&(data_p->splock), flags);
+	spin_lock_irqsave(&(data_p->read_splock), flags);
 
 	/* File is ready to be read. */
 	data_p->read_flag = 1;
 	wake_up_interruptible(&(data_p->read_wait));
 
 	/* Release spin lock. */
-	spin_unlock_irqrestore(&(data_p->splock), flags);
+	spin_unlock_irqrestore(&(data_p->read_splock), flags);
+}
+
+/* Write timer interrupt handler. */
+static void example_write_timeout_handler(unsigned long arg) {
+	struct device_data_reg *data_p = (struct device_data_reg *)arg;
+	unsigned long flags;
+
+	printk(KERN_DEBUG "EXAMPLE: write timer timeout\n");
+
+	/* Spin lock in interrupt. */
+	spin_lock_irqsave(&(data_p->write_splock), flags);
+
+	/* File is ready to be read. */
+	data_p->write_flag = 1;
+	wake_up_interruptible(&(data_p->write_wait));
+
+	/* Release spin lock. */
+	spin_unlock_irqrestore(&(data_p->write_splock), flags);
 }
 
 static int example_open(struct inode *inode, struct file *filp) {
@@ -67,14 +89,20 @@ static int example_open(struct inode *inode, struct file *filp) {
 	sema_init(&(dev_data.sem), 1);
 	/* Initial the wait queue head. */
 	init_waitqueue_head(&(dev_data.read_wait));
-	/* Initial the spin lock for timer interrupt. */
-	spin_lock_init(&(dev_data.splock));
-	/* initial the timer. */
-	init_timer(&(dev_data.timeout));
-	dev_data.timeout.function = example_timeout_handler;
-	dev_data.timeout.data = (unsigned long)(&dev_data);
-	mod_timer(&(dev_data.timeout), jiffies + 2*HZ);
+	/* Initial the spin locks for read / write timer interrupt. */
+	spin_lock_init(&(dev_data.read_splock));
+	spin_lock_init(&(dev_data.write_splock));
+	/* initial the read / write timers. */
+	init_timer(&(dev_data.read_timeout));
+	init_timer(&(dev_data.write_timeout));
+	dev_data.read_timeout.function = example_read_timeout_handler;
+	dev_data.write_timeout.function = example_write_timeout_handler;
+	dev_data.read_timeout.data = (unsigned long)(&dev_data);
+	dev_data.write_timeout.data = (unsigned long)(&dev_data);
+	mod_timer(&(dev_data.read_timeout), jiffies + 2*HZ);
+	mod_timer(&(dev_data.write_timeout), jiffies + 3*HZ);	
 	dev_data.read_flag = 0;
+	dev_data.write_flag = 0;
 
 	return 0;
 }
@@ -87,7 +115,8 @@ static int example_close(struct inode *inode, struct file *filp) {
 	data_p = filp->private_data;
 	/* Release the mapping of file data address. */
 	if(filp->private_data) {
-		del_timer_sync(&(data_p->timeout));
+		del_timer_sync(&(data_p->read_timeout));
+		del_timer_sync(&(data_p->write_timeout));
 		filp->private_data = NULL;
 	}
 
@@ -185,22 +214,26 @@ static long example_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 
 static unsigned int example_poll(struct file *filp, struct poll_table_struct *wait) {
 	struct device_data_reg *data_p;
-	unsigned int mask = POLLOUT | POLLWRNORM;
+	unsigned int mask;
 
 	printk(KERN_DEBUG "EXAMPLE: poll\n");
 
 	data_p = filp->private_data;
+	mask = 0;
 
 	if(data_p == NULL)
 		return -EBADFD;
 
 	/* Decrease semaphore. */
 	down(&(data_p->sem));
-	/* Register a file descriptor into wait queue. */
+	/* Register a file descriptor into wait queue for reading. */
 	poll_wait(filp, &(data_p->read_wait), wait);
-
+	/* Check ready to be read / written. */
 	if(data_p->read_flag == 1) {
-		mask |= POLLIN | POLLWRNORM;
+		mask |= POLLIN | POLLRDNORM;
+	}
+	if(data_p->write_flag == 1) {
+		mask |= POLLOUT | POLLWRNORM;
 	}
 	/* Release semaphore. */
 	up(&(data_p->sem));
