@@ -89,6 +89,7 @@ static int example_open(struct inode *inode, struct file *filp) {
 	sema_init(&(dev_data.sem), 1);
 	/* Initial the wait queue head. */
 	init_waitqueue_head(&(dev_data.read_wait));
+	init_waitqueue_head(&(dev_data.write_wait));
 	/* Initial the spin locks for read / write timer interrupt. */
 	spin_lock_init(&(dev_data.read_splock));
 	spin_lock_init(&(dev_data.write_splock));
@@ -100,7 +101,7 @@ static int example_open(struct inode *inode, struct file *filp) {
 	dev_data.read_timeout.data = (unsigned long)(&dev_data);
 	dev_data.write_timeout.data = (unsigned long)(&dev_data);
 	mod_timer(&(dev_data.read_timeout), jiffies + 2*HZ);
-	mod_timer(&(dev_data.write_timeout), jiffies + 3*HZ);	
+	mod_timer(&(dev_data.write_timeout), jiffies + 2*HZ);	
 	dev_data.read_flag = 0;
 	dev_data.write_flag = 0;
 
@@ -159,6 +160,7 @@ static ssize_t example_write(struct file *filp, const char __user *buf, size_t s
 	/* Get the lock for writing. */
 	write_lock(&(data_p->lock));
 	/* Write from user space to the device. */
+	*f_pos = 0;
 	for(count = 0; (count < size) && (*f_pos) < data_p->len; ++(*f_pos), ++count) {
 		if(copy_from_user(&byte, buf + count, 1) != 0) {
 			break;
@@ -228,6 +230,7 @@ static unsigned int example_poll(struct file *filp, struct poll_table_struct *wa
 	down(&(data_p->sem));
 	/* Register a file descriptor into wait queue for reading. */
 	poll_wait(filp, &(data_p->read_wait), wait);
+	poll_wait(filp, &(data_p->write_wait), wait);
 	/* Check ready to be read / written. */
 	if(data_p->read_flag == 1) {
 		mask |= POLLIN | POLLRDNORM;
