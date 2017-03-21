@@ -5,7 +5,6 @@
 #include <linux/stat.h>
 #include <linux/device.h>
 #include <asm/uaccess.h>
-//#include <linux/syscalls.h>
 #include <linux/string.h>
 #include <linux/errno.h>
 #include "test_ioctl.h"
@@ -17,21 +16,19 @@ struct device_data_reg {
 	int flag;
 	char *data;
 	int len;
-	rwlock_t lock;
 };
 
 /* The device initial data and registers' value. */
-static char _buffer[] = "0123456789\r\n";
 static struct device_data_reg dev_data = {
 									.flag = 0,
-									.data = _buffer,
-									.len = 12};
+									.len = 0};
 
+/* The file handler for the file going to be opened. */
 struct file* ch_dev = NULL;
+/* The file going to be opened. */
 #define FILE_DIR	"dummy.txt"
 
 static int example_open(struct inode *inode, struct file *filp) {
-	mm_segment_t old_fs;
 	int err = 0;
 	struct kstat st;
 
@@ -39,30 +36,27 @@ static int example_open(struct inode *inode, struct file *filp) {
 
 	/* Map the data location to the file data pointer. */
 	filp->private_data = &dev_data;
-	/* Initial lock. */
-	rwlock_init(&(dev_data.lock));
 
-	old_fs = get_fs();
-	set_fs(get_ds());
+	/* Open the file with reading and writing in file system. */
 	ch_dev = filp_open(FILE_DIR, O_RDWR, 0666);
 
 	if(IS_ERR(ch_dev)) {
 		err = PTR_ERR(ch_dev);
 	}
 	else {
+		/* Have the file's size. */
 		err = vfs_getattr(&(ch_dev->f_path), &st);
 		dev_data.len = st.size;
 	}
 
-	set_fs(old_fs);
-	
 	return err;
 }
 
 static int example_close(struct inode *inode, struct file *filp) {
 	printk(KERN_DEBUG "EXAMPLE: close\n");
 	
-	if(ch_dev >= 0)
+	/* Close the opened file in this module. */
+	if(ch_dev != NULL)
 		filp_close(ch_dev, NULL);
 
 	/* Release the mapping of file data address. */
@@ -85,26 +79,26 @@ static ssize_t example_read(struct file *filp, char __user *buf, size_t size, lo
 	printk(KERN_DEBUG "EXAMPLE: read (size=%zu)\n", size);
 
 	data_p = filp->private_data;
-	/* Get the lock for reading. */
-	//read_lock(&(data_p->lock));
 
+	/* Ask kernel do not check the memory boundary. */
 	old_fs = get_fs();
 	set_fs(get_ds());
 
 	/* Read from the device data to user space. */
 	for(count = 0; (count < size) && (*f_pos) < data_p->len; ++(*f_pos), ++count) {
+		/* Read 1 byte from the opened file. */
 		tmp_pos = *f_pos;
 		ret = vfs_read(ch_dev, &byte, 1, &tmp_pos);
+		/* Copy the read byte to user program. */
 		if((ret >= 0) && (copy_to_user(buf + count, &byte, 1) != 0)) {
 			break;
 		}
-		printk(KERN_DEBUG "EXAMPLE: read (buf[%zu]=%02x '%c')\n", count, (unsigned)byte, (char)byte);
+		printk(KERN_DEBUG "EXAMPLE: read (buf[%zu]=%02x '%c')\n",
+				count, (unsigned)byte, (char)byte);
 	}
 
+	/* Ask kernel to check the memory boundary again. */
 	set_fs(old_fs);
-
-	/* Release the lock for reading. */
-	//read_unlock(&(data_p->lock));
 
 	return count;
 }
@@ -121,42 +115,36 @@ static ssize_t example_write(struct file *filp, const char __user *buf, size_t s
 	printk(KERN_DEBUG "EXAMPLE: write (size=%zu)\n", size);
 
 	data_p = filp->private_data;
-	/* Get the lock for writing. */
-	//write_lock(&(data_p->lock));
-	
+
+	/* Ask kernel do not check the memory boundary. */
 	old_fs = get_fs();
 	set_fs(get_ds());
 
-	printk(KERN_DEBUG "Going to write\n");
 	/* Write from user space to the device. */
-	for(count = 0; (count < size) && (*f_pos) < data_p->len; ++(*f_pos), ++count) {
-		printk(KERN_DEBUG "Going to copy from user\n");
+	for(count = 0; count < size; ++(*f_pos), ++count) {
+		/* Copy 1 byte from user program. */
 		if(copy_from_user(&byte, buf + count, 1) != 0) {
 			break;
 		}
-		//data_p->data[*f_pos] = byte;
+		/* Write the copied byte to the opened file. */
 		tmp_pos = *f_pos;
-		printk(KERN_DEBUG "Going to write %c\n", (char)byte);
 		ret = vfs_write(ch_dev, &byte, 1, &tmp_pos);
 		if(ret == 1)
 			printk(KERN_DEBUG "EXAMPLE: write (buf[%zu]=%02x)\n", count, (unsigned)byte);
 		else
 			break;
 	}
-	/* Release the lock for writing. */
-	//write_unlock(&(data_p->lock));
 
+	/* Ask kernel to check the memory boundary again. */
 	set_fs(old_fs);
 
-	//if((count == 0) && ((*f_pos) >= data_p->len)) {
-	//	ret = -ENOBUFS;
-	//}
+	if(ret == -1)
+		return -1;
+
+	/* Update the opened file size if it began bigger. */
 	if((*f_pos) >= data_p->len) {
 		data_p->len = *f_pos;
 	}
-	//else {
-	//	ret = count;
-	//}
 	ret = count;
 
 	return ret;
@@ -170,7 +158,7 @@ static long example_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 	ret = 0;
 	pval = (int __user *)arg;
 
-	printk(KERN_DEBUG "EXAMPLE: unlocked_ioctl (cmd=%d)\n", cmd);
+	printk(KERN_DEBUG "EXAMPLE: ioctl (cmd=%d)\n", cmd);
 
 	data_p = filp->private_data;
 

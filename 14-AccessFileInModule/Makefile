@@ -15,22 +15,15 @@ test-pre:
 	cat /sys/class/$(PROJ)/$(PROJ)/uevent
 	sudo chmod 666 /dev/$(PROJ)
 	ls -l /dev/$(PROJ)
-	#cc test-application/main.c -o select
 	echo "Ker ~ Ker ~" > dummy.txt
 
 test-action:
 	cat /dev/$(PROJ)
 	dmesg | tail -n 40
-	echo Happy! >> /dev/$(PROJ)
+	echo "Happy World!" > /dev/$(PROJ)
 	dmesg | tail -n 40
-	#./select /dev/$(PROJ)
-	#dmesg | tail
 	cat /dev/$(PROJ)
 	dmesg | tail -n 40
-	#echo GoGoGoGoGoGo! > /dev/$(PROJ)
-	#dmesg | tail -n 40
-	#cat /dev/$(PROJ)
-	#dmesg | tail -n 40
 
 test-post:
 	sudo rmmod $(PROJ)
