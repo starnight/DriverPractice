@@ -3,6 +3,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/slab.h>
+#include <asm/uaccess.h>
 
 #include "useexample.h"
 #include "somedevice.h"
@@ -14,32 +15,65 @@ static DECLARE_BITMAP(minors, N_EXAMPLE_MINORS);
 static DEFINE_MUTEX(minors_lock);
 
 static ssize_t useexample_read(struct example_data *edata, const char __user *buf, size_t size) {
+	size_t len = 0;
+	int res;
+	struct some_device *esd;
+
+	esd = edata->example_device;
+	printk(KERN_DEBUG "USEEXAMPLE: some device #%d read\n", esd->address);
+
+	mutex_lock(&(edata->buf_lock));
+	/* Read from the some device into the example data's RX buffer. */
+	res = edata->bufmaxlen - edata->rx_buflen;
+	len = (res <= size) ? res : size;
+	len = somedevice_read(esd, edata->rx_buf + edata->rx_buflen, len);
+	edata->rx_buflen += len;
+
+	/* Read from the example data into user space. */
+	copy_to_user((void *)buf, edata->rx_buf, len);
+	edata->rx_buflen -= len;
+
+	mutex_unlock(&(edata->buf_lock));
+
+	return len;
+}
+
+static ssize_t useexample_write(struct example_data *edata, const char __user *buf, size_t size) {
 	ssize_t c = 0;
-	size_t len;
+	size_t len, oblen;
+	int res;
+	struct some_device *esd;
+
+	esd = edata->example_device;
+	printk(KERN_DEBUG "USEEXAMPLE: some device #%d write\n", esd->address);
 
 	mutex_lock(&(edata->buf_lock));
 	while(size > 0) {
-		len = (size <= edata->buflen) ? size : edata->buflen;
-		copy_from_user(edata->tx_buf, buf, len);
-		somedevice_write(edata, len);
+		/* Write from user space into the example data. */
+		res = edata->bufmaxlen - edata->tx_buflen;
+		len = (res <= size) ? res : size;
+		if(len == 0)
+			break;
+		copy_from_user(edata->tx_buf + edata->tx_buflen, buf + c, len);
+		oblen = edata->tx_buflen;
+		edata->tx_buflen += len;
+
+		/* Write from example data into some device. */
+		res = somedevice_write(esd, edata->tx_buf + oblen, edata->tx_buflen);
+		edata->tx_buflen -= len;
+		if(res <= 0) {
+			break;
+		}
+		else if(res < len) {
+			c += res;
+			break;
+		}
 		c += len;
 		size -= len;
 	}
 	mutex_unlock(&(edata->buf_lock));
 
 	return c;
-}
-
-static ssize_t useexample_write(struct example_data *edata, const char __user *buf, size_t size) {
-	size_t len;
-
-	mutex_lock(&(edata->buf_lock));
-	len = (size <= edata->buflen) ? size : edata->buflen;
-	somedevice_read(edata, len);
-	copy_to_user(buf, edata->tx_buf, len);
-	mutex_unlock(&(edata->buf_lock));
-
-	return len;
 }
 
 struct example_driver driver = {
@@ -69,6 +103,7 @@ static int emulate_probe(struct some_device *sd) {
 
 	/* Initial the example device's data. */
 	edata->example_device = sd;
+	edata->ops = &eops;
 	mutex_lock(&minors_lock);
 	minor = find_first_zero_bit(minors, N_EXAMPLE_MINORS);
 	if(minor < N_EXAMPLE_MINORS) {
@@ -121,10 +156,10 @@ static int emulate_remove(struct some_device *sd) {
 
 /* Emulate there are N_EXAMPLE_MINORS some devices. */
 static struct some_device esd[N_EXAMPLE_MINORS] = {
-	{ .bus = NULL, .address = 0 },
-	{ .bus = NULL, .address = 1 },
-	{ .bus = NULL, .address = 2 },
-	{ .bus = NULL, .address = 3 } };
+	{ .bus = NULL, .address = 0, .buflen = 0, .bufmaxlen = SOME_DEVICE_BUF_LEN },
+	{ .bus = NULL, .address = 1, .buflen = 0, .bufmaxlen = SOME_DEVICE_BUF_LEN },
+	{ .bus = NULL, .address = 2, .buflen = 0, .bufmaxlen = SOME_DEVICE_BUF_LEN },
+	{ .bus = NULL, .address = 3, .buflen = 0, .bufmaxlen = SOME_DEVICE_BUF_LEN } };
 
 /* UseExample kernel module's initial function. */
 static int useexample_init(void) {

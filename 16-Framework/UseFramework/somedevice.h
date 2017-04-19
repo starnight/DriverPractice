@@ -3,12 +3,17 @@
 
 #include <linux/device.h>
 
+#define SOME_DEVICE_BUF_LEN	256
+
 /* Emulate there is a kind of device. */
 /* Some device's structure. */
 struct some_device {
 	void *bus;
 	int address;
 	struct device dev;
+	uint8_t buf[SOME_DEVICE_BUF_LEN];
+	uint16_t buflen;
+	uint16_t bufmaxlen;
 };
 
 /* Set device's driver data. */
@@ -22,8 +27,33 @@ static inline void * somedevice_get_drvdata(struct some_device *sd) {
 }
 
 /* These are for hardware emulating. */
-#include <string.h>
-#define somedevice_write(sd, len)	(memcpy((sd)->__buf, (sd)->tx_buf, len))
-#define somedevice_read(sd, len)	(memcpy((sd)->rx_buf, (sd)->__buf, len))
+#include <linux/string.h>
+//#define somedevice_write(dst, src, len)	(memcpy(dst, src, len))
+static inline ssize_t somedevice_write(struct some_device *sd, void *buf, size_t size) {
+	int len;
+	int res;
+	ssize_t c = 0;
+
+	while(size > 0) {
+		res = sd->bufmaxlen - sd->buflen;
+		len = (res <= size) ? res : size;
+		memcpy(sd->buf + sd->buflen, buf, len);
+		sd->buflen += len;
+		c += len;
+		size -= len;
+	}
+
+	return c;
+}
+//#define somedevice_read(dst, src, len)	(memcpy(dst, src, len))
+static inline ssize_t somedevice_read(struct some_device *sd, void *buf, size_t size) {
+	int len;
+
+	len = (sd->buflen <= size) ? sd->buflen : size;
+	memcpy(buf, sd->buf, len);
+	sd->buflen -= len;
+
+	return len;
+}
 
 #endif

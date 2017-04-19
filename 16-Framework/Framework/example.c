@@ -55,17 +55,15 @@ static int file_open(struct inode *inode, struct file *filp) {
 			goto err_alloc_tx_buf;
 		}
 	}
-	edata->buflen = EXAMPLE_BUFLEN;
+	edata->rx_buflen = 0;
+	edata->tx_buflen = 0;
+	edata->bufmaxlen = EXAMPLE_BUFLEN;
 	edata->users++;
 	mutex_unlock(&device_list_lock);
 
 	/* Map the data location to the file data pointer. */
 	filp->private_data = edata;
 	nonseekable_open(inode, filp);
-
-	/* These are for hardware emulating. */
-	edata->__buf = kzalloc(EXAMPLE_BUFLEN, GFP_KERNEL);
-	edata->__buflen = EXAMPLE_BUFLEN;
 
 	return 0;
 
@@ -120,8 +118,10 @@ static ssize_t file_write(struct file *filp, const char __user *buf, size_t size
 
 	edata = filp->private_data;
 
-	if(edata->ops->example_write != NULL)
+	printk(KERN_DEBUG "EXAMPLE: Going to write %x into %x\n", (uint32_t)buf, (uint32_t)edata);
+	if(edata->ops->example_write != NULL) {
 		return edata->ops->example_write(edata, buf, size);
+	}
 	else
 		return 0;
 }

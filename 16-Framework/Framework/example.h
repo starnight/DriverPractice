@@ -23,12 +23,11 @@ struct example_data {
 	struct example_operations *ops;
 	uint8_t *tx_buf;
 	uint8_t *rx_buf;
-	uint16_t buflen;
+	uint16_t tx_buflen;
+	uint16_t rx_buflen;
+	uint16_t bufmaxlen;
 	uint16_t users;
 	struct mutex buf_lock;
-	/* These are for hardware emulating. */
-	uint8_t *__buf;
-	uint16_t __buflen;
 };
 
 struct example_driver {
