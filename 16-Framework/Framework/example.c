@@ -92,6 +92,8 @@ static int file_close(struct inode *inode, struct file *filp) {
 	if(edata->users == 0) {
 		kfree(edata->rx_buf);
 		kfree(edata->tx_buf);
+		edata->rx_buf = NULL;
+		edata->tx_buf = NULL;
 	}
 	mutex_unlock(&device_list_lock);
 
@@ -118,7 +120,6 @@ static ssize_t file_write(struct file *filp, const char __user *buf, size_t size
 
 	edata = filp->private_data;
 
-	printk(KERN_DEBUG "EXAMPLE: Going to write %x into %x\n", (uint32_t)buf, (uint32_t)edata);
 	if(edata->ops->example_write != NULL) {
 		return edata->ops->example_write(edata, buf, size);
 	}

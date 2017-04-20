@@ -28,7 +28,8 @@ static inline void * somedevice_get_drvdata(struct some_device *sd) {
 
 /* These are for hardware emulating. */
 #include <linux/string.h>
-//#define somedevice_write(dst, src, len)	(memcpy(dst, src, len))
+
+/* Write into some device's buffer. */
 static inline ssize_t somedevice_write(struct some_device *sd, void *buf, size_t size) {
 	int len;
 	int res;
@@ -36,6 +37,8 @@ static inline ssize_t somedevice_write(struct some_device *sd, void *buf, size_t
 
 	while(size > 0) {
 		res = sd->bufmaxlen - sd->buflen;
+		if(res <= 0)
+			break;
 		len = (res <= size) ? res : size;
 		memcpy(sd->buf + sd->buflen, buf, len);
 		sd->buflen += len;
@@ -45,7 +48,8 @@ static inline ssize_t somedevice_write(struct some_device *sd, void *buf, size_t
 
 	return c;
 }
-//#define somedevice_read(dst, src, len)	(memcpy(dst, src, len))
+
+/* Read from some device's buffer. */
 static inline ssize_t somedevice_read(struct some_device *sd, void *buf, size_t size) {
 	int len;
 

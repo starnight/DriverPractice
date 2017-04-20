@@ -15,7 +15,7 @@ static DECLARE_BITMAP(minors, N_EXAMPLE_MINORS);
 static DEFINE_MUTEX(minors_lock);
 
 static ssize_t useexample_read(struct example_data *edata, const char __user *buf, size_t size) {
-	size_t len = 0;
+	size_t len = 0, oblen;
 	int res;
 	struct some_device *esd;
 
@@ -27,10 +27,11 @@ static ssize_t useexample_read(struct example_data *edata, const char __user *bu
 	res = edata->bufmaxlen - edata->rx_buflen;
 	len = (res <= size) ? res : size;
 	len = somedevice_read(esd, edata->rx_buf + edata->rx_buflen, len);
+	oblen = edata->rx_buflen;
 	edata->rx_buflen += len;
 
 	/* Read from the example data into user space. */
-	copy_to_user((void *)buf, edata->rx_buf, len);
+	copy_to_user((void *)buf, edata->rx_buf + oblen, len);
 	edata->rx_buflen -= len;
 
 	mutex_unlock(&(edata->buf_lock));
@@ -109,15 +110,13 @@ static int emulate_probe(struct some_device *sd) {
 	if(minor < N_EXAMPLE_MINORS) {
 		set_bit(minor, minors);
 		edata->devt = MKDEV(driver.major, minor);
-		printk(KERN_DEBUG "USEEXAMPLE: create device %d\n", sd->address);
 		device_create(driver.example_class,
 					  NULL,
 					  edata->devt,
 					  edata,
 					  "useexample%d", sd->address);
-		printk(KERN_DEBUG "USEEXAMPLE: device %d created\n", sd->address);
+		/* Set the some device's driver data for later use.  */
 		somedevice_set_drvdata(sd, edata);
-		printk(KERN_DEBUG "USEEXAMPLE: set device %d driver data\n", sd->address);
 		example_device_add(edata);
 		status = 0;
 	}
