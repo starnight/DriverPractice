@@ -288,13 +288,13 @@ static struct file_operations example_fops = {
 
 #define EXAMPLE_NAME	"example"
 
-static unsigned int example_major = 0;
+static unsigned int example_major;
 static unsigned int example_devs = 2;
 static struct cdev example_cdev;
 static struct class *example_sys_class = NULL;
 
 static int example_init(void) {
-	dev_t dev = MKDEV(example_major, 0);
+	dev_t dev;
 	int alloc_ret, cdev_err;
 
 	printk(KERN_DEBUG "EXAMPLE: init\n");
@@ -310,7 +310,8 @@ static int example_init(void) {
 	cdev_init(&example_cdev, &example_fops);
 	example_cdev.owner = THIS_MODULE;
 	/* Add the character device driver into system. */
-	cdev_err = cdev_add(&example_cdev, MKDEV(example_major, 0), example_devs);
+	dev = MKDEV(example_major, 0);
+	cdev_err = cdev_add(&example_cdev, dev, example_devs);
 	if(cdev_err) {
 		printk(KERN_DEBUG "EXAMPLE: Failed to register a character device\n");
 		/* Release the allocated character device. */
