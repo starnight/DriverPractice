@@ -4,8 +4,8 @@ This the "Hello World" practice of Linux kernel module.
 
 ## Build and Clean
 
-* Build example.ko kernel module
-	```sh
+* Build example.ko kernel module accroding to the *Makefile*
+```sh
 	make
 	```
 
