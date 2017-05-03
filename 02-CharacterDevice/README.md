@@ -12,7 +12,7 @@ So, let's start from the "Character Device" file kernel module.
 
 	* _/dev/example_: The name of the character file
 	* _c_: Represent making a character device file
-	* _60_: It is the **MAJOR** number that maps to the **MAJOR** number of the example.ko kernel module
+	* _60_: It is the **MAJOR** number that maps to the **MAJOR** number (**EXAMPLE_MAJOR**) of the example.ko kernel module
 	* _0_: It is the **MINOR** number that maps to the **MINOR** number of the example.ko kernel module
 
 2. Use ``` ls -l /dev/example ``` to observe the file
