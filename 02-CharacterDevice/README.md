@@ -12,8 +12,8 @@ So, let's start from the "Character Device" file kernel module.
 
 	* _/dev/example_: The name of the character file
 	* _c_: Represent making a character device file
-	* _60_: It is the *MAJOR* number that maps to the "MAJOR" number of the example.ko kernel module
-	* _0_: It is the *MINOR* number that maps to the "MINOR" number of the example.ko kernel module
+	* _60_: It is the **MAJOR** number that maps to the **MAJOR** number of the example.ko kernel module
+	* _0_: It is the **MINOR** number that maps to the **MINOR** number of the example.ko kernel module
 
 2. Use ``` ls -l /dev/example ``` to observe the file
 
@@ -21,12 +21,12 @@ So, let's start from the "Character Device" file kernel module.
 	crw-rw-rw- 1 root root 60, 0 May  3 15:05 /dev/example
 	```
 
-	* _60_: *MAJOR* number
-	* _0_: *MINOR* number
+	* _60_: **MAJOR** number
+	* _0_: **MINOR** number
 
 ## MAJOR and MINOR Number
 
-Generally, the *MAJOR* number identifies the device driver and the *MINOR* number identifies a particular device (possibly out of many) that the driver controls.
+Generally, the **MAJOR** number identifies the device driver and the **MINOR** number identifies a particular device (possibly out of many) that the driver controls.
 
 https://en.wikipedia.org/wiki/Device_file#Unix_and_Unix-like_systems
 
