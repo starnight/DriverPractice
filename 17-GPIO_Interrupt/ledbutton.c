@@ -11,8 +11,8 @@
 
 #define __DRIVER_NAME	"led_button"
 
-#define	LED		27
-#define	BUTTON		23
+#define	LED		23
+#define	BUTTON		24
 
 static int led = LED;
 static int button = BUTTON;
@@ -39,8 +39,8 @@ int add_led(void)
 
 	pr_debug("%s: add an LED", __DRIVER_NAME);
 
-	err = gpio_is_valid(led);
-	if (err) {
+	if (!gpio_is_valid(led)) {
+		err = -ENODEV;
 		pr_err("%s: GPIO of LED is invalid", __DRIVER_NAME);
 		goto add_led_end;
 	}
@@ -64,8 +64,8 @@ int add_button(void)
 
 	pr_debug("%s: add a BUTTON with an interrupt", __DRIVER_NAME);
 
-	err = gpio_is_valid(button);
-	if (err) {
+	if (!gpio_is_valid(button)) {
+		err = -ENODEV;
 		pr_err("%s: GPIO of BUTTON is invalid", __DRIVER_NAME);
 		goto add_button_end;
 	}
@@ -85,7 +85,7 @@ int add_button(void)
 
 	err = request_irq(button_irq,
 			  button_isr,
-			  IRQF_TRIGGER_RISING,
+			  IRQF_TRIGGER_FALLING,
 			  __DRIVER_NAME,
 			  NULL);
 	if (err)
@@ -107,6 +107,7 @@ int remove_button(void)
 {
 	free_irq(button_irq, NULL);
 	gpio_free(button);
+
 	return 0;
 }
 
@@ -134,6 +135,8 @@ ledbutton_init_err:
 
 static void ledbutton_exit(void)
 {
+	pr_info("%s: remove the %s module", __DRIVER_NAME, __DRIVER_NAME);
+
 	remove_led();
 	remove_button();
 }
