@@ -2,6 +2,8 @@
 
 This is GPIO and external interrupt practice with an LED and a button.
 
+This refers to http://blog.ittraining.com.tw/2015/05/raspberry-pi-b-pi2-linux-gpio-button.html
+
 ## Hardware
 
 I use a Raspberry Pi, a LED, a button and some resistors to do this practice.

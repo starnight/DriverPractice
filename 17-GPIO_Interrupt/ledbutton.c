@@ -83,6 +83,7 @@ int add_button(void)
 		goto add_button_end;
 	}
 
+	/* Register an interrupt request with the ISR */
 	err = request_irq(button_irq,
 			  button_isr,
 			  IRQF_TRIGGER_FALLING,
