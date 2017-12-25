@@ -93,7 +93,7 @@ struct crypto_skcipher *my_aes_cbc_key_setup(u8 *k, size_t k_len)
 
 int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *out)
 {
-	u8 iv[16] = {0};
+	u8 iv[16];
 	struct scatterlist src, dst;
 	SKCIPHER_REQUEST_ON_STACK(req, tfm);
 	int err;
@@ -104,7 +104,7 @@ int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 
 	skcipher_request_set_tfm(req, tfm);
 	skcipher_request_set_callback(req, 0, NULL, NULL);
-	skcipher_request_set_crypt(req, &src, &src, len, iv);
+	skcipher_request_set_crypt(req, &src, &dst, len, iv);
 	err = crypto_skcipher_encrypt(req);
 	skcipher_request_zero(req);
 
