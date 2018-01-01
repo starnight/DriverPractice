@@ -91,12 +91,34 @@ int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 	return err;
 }
 
+int my_aes_cbc_decrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *out)
+{
+	u8 iv[16];
+	struct scatterlist src, dst;
+	SKCIPHER_REQUEST_ON_STACK(req, tfm);
+	int err;
+
+	memset(iv, 0, 16);
+	/* The buffer for sg_init_one cannot be a global or const local
+	   (will confuse the scatterlist) */
+	sg_init_one(&src, data, len);
+	sg_init_one(&dst, out, len);
+
+	skcipher_request_set_tfm(req, tfm);
+	skcipher_request_set_callback(req, 0, NULL, NULL);
+	skcipher_request_set_crypt(req, &src, &dst, len, iv);
+	err = crypto_skcipher_decrypt(req);
+	skcipher_request_zero(req);
+
+	return err;
+}
+
 void my_aes_cbc_key_free(struct crypto_skcipher *tfm)
 {
 	crypto_free_skcipher(tfm);
 }
 
-int my_aes_cbc_encrypt_demo(u8 *key, size_t key_sz, u8 *msg, size_t msg_len, u8 *enc_data)
+int my_aes_cbc_encrypt_demo(u8 *key, size_t key_sz, u8 *in, size_t in_len, u8 *out)
 {
 	struct crypto_skcipher *tfm;
 	int err;
@@ -105,12 +127,32 @@ int my_aes_cbc_encrypt_demo(u8 *key, size_t key_sz, u8 *msg, size_t msg_len, u8 
 	if (IS_ERR(tfm)) {
 		pr_err("%s: could not allocate crypto aes-cbc\n", __DRIVER_NAME);
 		err = -ENOMEM;
-		goto my_aes_cbc_demo_end;
+		goto my_aes_cbc_encrypt_demo_end;
 	}
 
-	err = my_aes_cbc_encrypt(tfm, msg, msg_len, enc_data);
+	err = my_aes_cbc_encrypt(tfm, in, in_len, out);
 
-my_aes_cbc_demo_end:
+my_aes_cbc_encrypt_demo_end:
+	my_aes_cbc_key_free(tfm);
+
+	return err;
+}
+
+int my_aes_cbc_decrypt_demo(u8 *key, size_t key_sz, u8 *in, size_t in_len, u8 *out)
+{
+	struct crypto_skcipher *tfm;
+	int err;
+
+	tfm = my_aes_cbc_key_setup(key, key_sz);
+	if (IS_ERR(tfm)) {
+		pr_err("%s: could not allocate crypto aes-cbc\n", __DRIVER_NAME);
+		err = -ENOMEM;
+		goto my_aes_cbc_decrypt_demo_end;
+	}
+
+	err = my_aes_cbc_decrypt(tfm, in, in_len, out);
+
+my_aes_cbc_decrypt_demo_end:
 	my_aes_cbc_key_free(tfm);
 
 	return err;
@@ -146,6 +188,12 @@ static int mycrypto_init(void)
 	if (err == 0) {
 		pr_debug("%s: CBC(AES-128) encryption:\n", __DRIVER_NAME);
 		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, enc_data, enc_len, true);
+	}
+
+	err = my_aes_cbc_decrypt_demo(key, key_sz, enc_data, enc_len, dec_data);
+	if (err == 0) {
+		pr_debug("%s: CBC(AES-128) decryption:\n", __DRIVER_NAME);
+		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, dec_data, dec_len, true);
 	}
 
 	return 0;
