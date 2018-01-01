@@ -77,6 +77,8 @@ int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 	int err;
 
 	memset(iv, 0, 16);
+	/* The buffer for sg_init_one cannot be a global or const local
+	   (will confuse the scatterlist) */
 	sg_init_one(&src, data, len);
 	sg_init_one(&dst, out, len);
 
