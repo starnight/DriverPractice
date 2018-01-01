@@ -1,30 +1,11 @@
-/*-
- * This refers to http://blog.ittraining.com.tw/2015/05/raspberry-pi-b-pi2-linux-gpio-button.html
- */
-
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/printk.h>
-#include <linux/crypto.h>
-#include <linux/scatterlist.h>
 #include <crypto/hash.h>
 #include <crypto/skcipher.h>
+#include <linux/scatterlist.h>
 
 #define __DRIVER_NAME	"mycrypto"
-
-u8 key[] = { 0x2b,0x7e,0x15,0x16, 
-	     0x28,0xae,0xd2,0xa6,
-	     0xab,0xf7,0x15,0x88,
-	     0x09,0xcf,0x4f,0x3c};
-size_t key_sz = ARRAY_SIZE(key);
-u8 msg[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-size_t msg_len = 32;
-u8 enc_data[32] = {0};
-size_t enc_len = ARRAY_SIZE(enc_data);
-u8 dec_data[32] = {0};
-size_t dec_len = ARRAY_SIZE(dec_data);
-u8 mact[16] = {0};
-size_t mact_len = ARRAY_SIZE(mact);
 
 struct crypto_shash *my_aes_cmac_key_setup(u8 *k, size_t k_len)
 {
@@ -56,7 +37,7 @@ void my_aes_cmac_key_free(struct crypto_shash *tfm)
 	crypto_free_shash(tfm);
 }
 
-void my_aes_cmac_demo(void)
+int my_aes_cmac_demo(u8 *key, size_t key_sz, u8 *msg, size_t msg_len, u8 *mact)
 {
 	struct crypto_shash *shash;
 	int err;
@@ -64,19 +45,16 @@ void my_aes_cmac_demo(void)
 	shash = my_aes_cmac_key_setup(key, key_sz);
 	if (IS_ERR(shash)) {
 		pr_err("%s: could not allocate crypto cmac-aes\n", __DRIVER_NAME);
+		err = -ENOMEM;
 		goto my_aes_cmac_demo_end;
 	}
 
 	err = my_aes_cmac(shash, msg, msg_len, mact);
-	if (!err) {
-		pr_debug("%s: original:\n", __DRIVER_NAME);
-		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, msg, msg_len, true);
-		pr_debug("%s: CMAC(AES-128):\n", __DRIVER_NAME);
-		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, mact, mact_len, true);
-	}
 
 my_aes_cmac_demo_end:
 	my_aes_cmac_key_free(shash);
+
+	return err;
 }
 
 struct crypto_skcipher *my_aes_cbc_key_setup(u8 *k, size_t k_len)
@@ -116,7 +94,7 @@ void my_aes_cbc_key_free(struct crypto_skcipher *tfm)
 	crypto_free_skcipher(tfm);
 }
 
-void my_aes_cbc_encrypto_demo(void)
+int my_aes_cbc_encrypt_demo(u8 *key, size_t key_sz, u8 *msg, size_t msg_len, u8 *enc_data)
 {
 	struct crypto_skcipher *tfm;
 	int err;
@@ -124,27 +102,49 @@ void my_aes_cbc_encrypto_demo(void)
 	tfm = my_aes_cbc_key_setup(key, key_sz);
 	if (IS_ERR(tfm)) {
 		pr_err("%s: could not allocate crypto aes-cbc\n", __DRIVER_NAME);
+		err = -ENOMEM;
 		goto my_aes_cbc_demo_end;
 	}
 
 	err = my_aes_cbc_encrypt(tfm, msg, msg_len, enc_data);
-	if (!err) {
-		pr_debug("%s: original:\n", __DRIVER_NAME);
-		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, msg, msg_len, true);
-		pr_debug("%s: cbc(AES-128):\n", __DRIVER_NAME);
-		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, enc_data, enc_len, true);
-	}
 
 my_aes_cbc_demo_end:
 	my_aes_cbc_key_free(tfm);
+
+	return err;
 }
 
 static int mycrypto_init(void)
 {
+	u8 key[] = { 0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,0xa6,
+		     0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c};
+	size_t key_sz = ARRAY_SIZE(key);
+	u8 msg[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	size_t msg_len = 32;
+	u8 enc_data[32] = {0};
+	size_t enc_len = ARRAY_SIZE(enc_data);
+	u8 dec_data[32] = {0};
+	size_t dec_len = ARRAY_SIZE(dec_data);
+	u8 mact[16] = {0};
+	size_t mact_len = ARRAY_SIZE(mact);
+	int err;
+
 	pr_info("%s: add the %s module", __DRIVER_NAME, __DRIVER_NAME);
 
-	my_aes_cmac_demo();
-	my_aes_cbc_encrypto_demo();
+	pr_debug("%s: original:\n", __DRIVER_NAME);
+	print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, msg, msg_len, true);
+
+	err = my_aes_cmac_demo(key, key_sz, msg, msg_len, mact);
+	if (err == 0) {
+		pr_debug("%s: CMAC(AES-128):\n", __DRIVER_NAME);
+		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, mact, mact_len, true);
+	}
+
+	err = my_aes_cbc_encrypt_demo(key, key_sz, msg, msg_len, enc_data);
+	if (err == 0) {
+		pr_debug("%s: CBC(AES-128) encryption:\n", __DRIVER_NAME);
+		print_hex_dump_debug("", DUMP_PREFIX_NONE, 16, 1, enc_data, enc_len, true);
+	}
 
 	return 0;
 }
