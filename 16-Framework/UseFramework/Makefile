@@ -2,6 +2,8 @@ PPROJ=example
 PROJ=useexample
 obj-m := $(PROJ).o
 
+KBUILD_EXTRA_SYMBOLS := $(PWD)/../Framework/Module.symvers
+
 ifeq ($(KERNELDIR),)
 KERNELDIR=/lib/modules/$(shell uname -r)/build
 endif
