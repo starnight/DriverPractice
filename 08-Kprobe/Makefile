@@ -23,7 +23,7 @@ test:
 	#
 	cd $(PWD)
 	sudo insmod ./$(PROJ).ko
-	dmesg | tail
+	sudo dmesg | tail
 	#
 	# ---------------------------Target working------------------------------
 	#
@@ -37,7 +37,7 @@ test:
 	#
 	cd $(PWD)
 	sudo rmmod $(PROJ)
-	dmesg | tail
+	sudo dmesg | tail
 
 clean:
 	make -C $(KERNELDIR) M=$(shell pwd) clean

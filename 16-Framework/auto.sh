@@ -16,4 +16,4 @@ make uninstall; make clean
 cd ../Framework
 make uninstall; make clean
 
-dmesg | tail -n 50
+sudo dmesg | tail -n 50

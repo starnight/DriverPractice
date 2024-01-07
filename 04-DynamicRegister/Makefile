@@ -12,17 +12,17 @@ all:
 
 test:
 	sudo insmod ./$(PROJ).ko
-	dmesg | tail
+	sudo dmesg | tail
 	sudo mknod /dev/$(PROJ) c $(MAJORSCRIPT) 0
 	sudo chmod 666 /dev/$(PROJ)
 	ls -l /dev/$(PROJ)
 	echo -n "Happy!" > /dev/$(PROJ)
-	dmesg | tail
+	sudo dmesg | tail
 	cat /dev/$(PROJ)
-	dmesg | tail
+	sudo dmesg | tail
 	sudo rm /dev/$(PROJ)
 	sudo rmmod $(PROJ)
-	dmesg | tail
+	sudo dmesg | tail
 
 clean:
 	make -C $(KERNELDIR) M=$(shell pwd) clean
