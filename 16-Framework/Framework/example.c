@@ -128,7 +128,7 @@ static ssize_t file_write(struct file *filp, const char __user *buf, size_t size
 }
 
 /* Add an example compatible device. */
-static int example_device_add(struct example_data *edata) {
+int example_device_add(struct example_data *edata) {
 	INIT_LIST_HEAD(&(edata->device_entry));
 
 	mutex_lock(&device_list_lock);
@@ -140,7 +140,7 @@ static int example_device_add(struct example_data *edata) {
 EXPORT_SYMBOL(example_device_add);
 
 /* Remove an example compatible device. */
-static int example_device_remove(struct example_data *edata) {
+int example_device_remove(struct example_data *edata) {
 	mutex_lock(&device_list_lock);
 	list_del(&(edata->device_entry));
 	mutex_unlock(&device_list_lock);
@@ -157,7 +157,7 @@ static struct file_operations example_fops = {
 };
 
 /* Register there is a kind of example driver. */
-static int example_register_driver(struct example_driver *driver) {
+int example_register_driver(struct example_driver *driver) {
 	dev_t dev;
 	int alloc_ret, cdev_err;
 
@@ -207,7 +207,7 @@ static int example_register_driver(struct example_driver *driver) {
 EXPORT_SYMBOL(example_register_driver);
 
 /* Unregister the example driver. */
-static int example_unregister_driver(struct example_driver *driver) {
+int example_unregister_driver(struct example_driver *driver) {
 	dev_t dev = MKDEV(driver->major, driver->minor_start);
 	
 	printk(KERN_DEBUG "EXAMPLE: unregister %s\n", driver->name);
