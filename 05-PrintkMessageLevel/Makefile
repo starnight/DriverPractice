@@ -12,21 +12,21 @@ all:
 
 test-pre:
 	sudo insmod ./$(PROJ).ko
-	dmesg | tail
+	sudo dmesg | tail
 	sudo mknod /dev/$(PROJ) c $(MAJORSCRIPT) 0
 	sudo chmod 666 /dev/$(PROJ)
 	ls -l /dev/$(PROJ)
 
 test-action:
 	echo Happy! > /dev/$(PROJ)
-	dmesg | tail -n 40
+	sudo dmesg | tail -n 40
 	cat /dev/$(PROJ)
-	dmesg | tail -n 40
+	sudo dmesg | tail -n 40
 
 test-post:
 	sudo rm /dev/$(PROJ)
 	sudo rmmod $(PROJ)
-	dmesg | tail
+	sudo dmesg | tail
 
 test: test-pre test-action test-post
 

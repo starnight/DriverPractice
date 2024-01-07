@@ -10,7 +10,7 @@ all:
 
 test-pre:
 	sudo insmod ./$(PROJ).ko
-	dmesg | tail
+	sudo dmesg | tail
 	cat /sys/class/$(PROJ)/$(PROJ)/dev
 	cat /sys/class/$(PROJ)/$(PROJ)/uevent
 	sudo chmod 666 /dev/$(PROJ)
@@ -19,15 +19,15 @@ test-pre:
 
 test-action:
 	cat /dev/$(PROJ)
-	dmesg | tail -n 40
+	sudo dmesg | tail -n 40
 	echo "Happy World!" > /dev/$(PROJ)
-	dmesg | tail -n 40
+	sudo dmesg | tail -n 40
 	cat /dev/$(PROJ)
-	dmesg | tail -n 40
+	sudo dmesg | tail -n 40
 
 test-post:
 	sudo rmmod $(PROJ)
-	dmesg | tail -n 60
+	sudo dmesg | tail -n 60
 	rm dummy.txt
 
 test: test-pre test-action test-post
