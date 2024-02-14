@@ -57,23 +57,23 @@ my_aes_cmac_demo_end:
 	return err;
 }
 
-struct crypto_skcipher *my_aes_cbc_key_setup(u8 *k, size_t k_len)
+struct crypto_sync_skcipher *my_aes_cbc_key_setup(u8 *k, size_t k_len)
 {
 	char *algo = "cbc(aes)";
-	struct crypto_skcipher *tfm;
+	struct crypto_sync_skcipher *tfm;
 
-	tfm = crypto_alloc_skcipher(algo, 0, CRYPTO_ALG_ASYNC);
+	tfm = crypto_alloc_sync_skcipher(algo, 0, CRYPTO_ALG_ASYNC);
 	if (!IS_ERR(tfm))
-		crypto_skcipher_setkey(tfm, k, k_len);
+		crypto_sync_skcipher_setkey(tfm, k, k_len);
 
 	return tfm;
 }
 
-int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *out)
+int my_aes_cbc_encrypt(struct crypto_sync_skcipher *tfm, u8 *data, size_t len, u8 *out)
 {
 	u8 iv[16];
 	struct scatterlist src, dst;
-	SKCIPHER_REQUEST_ON_STACK(req, tfm);
+	SYNC_SKCIPHER_REQUEST_ON_STACK(req, tfm);
 	int err;
 
 	memset(iv, 0, 16);
@@ -82,7 +82,7 @@ int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 	sg_init_one(&src, data, len);
 	sg_init_one(&dst, out, len);
 
-	skcipher_request_set_tfm(req, tfm);
+	skcipher_request_set_sync_tfm(req, tfm);
 	skcipher_request_set_callback(req, 0, NULL, NULL);
 	skcipher_request_set_crypt(req, &src, &dst, len, iv);
 	err = crypto_skcipher_encrypt(req);
@@ -91,11 +91,11 @@ int my_aes_cbc_encrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 	return err;
 }
 
-int my_aes_cbc_decrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *out)
+int my_aes_cbc_decrypt(struct crypto_sync_skcipher *tfm, u8 *data, size_t len, u8 *out)
 {
 	u8 iv[16];
 	struct scatterlist src, dst;
-	SKCIPHER_REQUEST_ON_STACK(req, tfm);
+	SYNC_SKCIPHER_REQUEST_ON_STACK(req, tfm);
 	int err;
 
 	memset(iv, 0, 16);
@@ -104,7 +104,7 @@ int my_aes_cbc_decrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 	sg_init_one(&src, data, len);
 	sg_init_one(&dst, out, len);
 
-	skcipher_request_set_tfm(req, tfm);
+	skcipher_request_set_sync_tfm(req, tfm);
 	skcipher_request_set_callback(req, 0, NULL, NULL);
 	skcipher_request_set_crypt(req, &src, &dst, len, iv);
 	err = crypto_skcipher_decrypt(req);
@@ -113,14 +113,14 @@ int my_aes_cbc_decrypt(struct crypto_skcipher *tfm, u8 *data, size_t len, u8 *ou
 	return err;
 }
 
-void my_aes_cbc_key_free(struct crypto_skcipher *tfm)
+void my_aes_cbc_key_free(struct crypto_sync_skcipher *tfm)
 {
-	crypto_free_skcipher(tfm);
+	crypto_free_sync_skcipher(tfm);
 }
 
 int my_aes_cbc_encrypt_demo(u8 *key, size_t key_sz, u8 *in, size_t in_len, u8 *out)
 {
-	struct crypto_skcipher *tfm;
+	struct crypto_sync_skcipher *tfm;
 	int err;
 
 	tfm = my_aes_cbc_key_setup(key, key_sz);
@@ -140,7 +140,7 @@ my_aes_cbc_encrypt_demo_end:
 
 int my_aes_cbc_decrypt_demo(u8 *key, size_t key_sz, u8 *in, size_t in_len, u8 *out)
 {
-	struct crypto_skcipher *tfm;
+	struct crypto_sync_skcipher *tfm;
 	int err;
 
 	tfm = my_aes_cbc_key_setup(key, key_sz);
