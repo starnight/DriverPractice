@@ -189,7 +189,7 @@ int example_register_driver(struct example_driver *driver) {
 	printk(KERN_DEBUG "EXAMPLE: %s driver(major %d) installed.\n", driver->name, driver->major);
 
 	/* Create device class. */
-	driver->example_class = class_create(driver->owner, driver->name);
+	driver->example_class = class_create(driver->name);
 	if(IS_ERR(driver->example_class)) {
 		printk(KERN_DEBUG "EXAMPLE: Failed to create a class of device.\n");
 		/* Release the added character device. */
